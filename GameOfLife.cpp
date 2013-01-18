@@ -50,7 +50,7 @@ void processElement(const Cell& c, Element_map & m)
          if (x==0 && y==0)
             continue;
 
-		 ++m[Cell(c.x+x, c.y+y)].cnt;
+	++m[Cell(c.x+x, c.y+y)].cnt;
      }
 }
 
@@ -86,9 +86,9 @@ public:
 	}
 private:
 	
-	Element_set element_set;
-	A 			aliveStrategy;
-	B 			birthStrategy;
+	Element_set 	element_set;
+	A 		aliveStrategy;
+	B 		birthStrategy;
 };
 
 int main()
