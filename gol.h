@@ -85,7 +85,7 @@ private:
 		 }
 	}
 	
-	Elements	 	elements;
+	Elements	elements;
 	AliveStrategy 	aliveStrategy;
 	BirthStrategy 	birthStrategy;
 };
