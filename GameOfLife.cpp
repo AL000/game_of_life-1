@@ -1,30 +1,11 @@
+// Simple realisation of Game of Life
+// http://en.wikipedia.org/wiki/Conway's_Game_of_Life
+// Poluyanov Yuliy p.yuliy@gmail.com
 
-#include <iostream>
-#include <map>
-#include <set>
+#include <gtest/gtest.h>
+#include "gol.h"
+#include <algorithm>
 
-struct Cell
-{
-  int x;
-	int y;
-	Cell(int x_= 0, int y_= 0):x(x_),y(y_){};
-	bool operator()(const Cell &c1, const Cell &c2) const
-	{
-		return (c1.x!=c2.x)? c1.x<c2.x : c1.y<c2.y;
-	}
-};
-
-struct CellProcessor
-{
-	bool isCell;
-	int  cnt;
-	CellProcessor():isCell(false),cnt(0){}
-};
-	
-typedef std::set<Cell, Cell>            	Element_set;
-typedef Element_set::const_iterator     	Element_set_ci;
-typedef std::map<Cell,CellProcessor,Cell>	Element_map;
-typedef Element_map::const_iterator     	Element_map_ci;
 
 struct AliveStrategy
 {
@@ -42,74 +23,96 @@ struct BirthStrategy
 	};
 };
 
-void processElement(const Cell& c, Element_map & m)
-{
-   for (int x=-1; x<2; ++x)
-      for (int y=-1; y<2; ++y)
-      {
-         if (x==0 && y==0)
-            continue;
+	TEST(CellTest, EquivalenceTest) {
+		Cell a(4,7), b(4,7);
+		ASSERT_FALSE(a(a,b)) << " equal elements must return as equivalence false";
+		ASSERT_FALSE(a(b,a)) << " equal elements must return as equivalence false";
+	}
+	
+	TEST(StrategyTest, AliveDead) {
+		AliveStrategy s;
+		CellProcessor cp;
+		cp.isCell = true;
+		cp.cnt = 1;
+		ASSERT_FALSE(s(cp)) << " with cnt=" << cp.cnt << " should not live";
+		cp.cnt = 2;
+		ASSERT_TRUE(s(cp))  << "with cnt=" << cp.cnt << " should live";
+		cp.cnt = 3;
+		ASSERT_TRUE(s(cp))  << "with cnt=" << cp.cnt << " should live";
+		cp.cnt = 4;
+		ASSERT_FALSE(s(cp)) << "with cnt=" << cp.cnt << " should not live";
+	}
 
-	++m[Cell(c.x+x, c.y+y)].cnt;
-     }
+	TEST(GOLTest, Beacon) {
+		GameOfLife <AliveStrategy, BirthStrategy> gol;
+		
+		Elements b;
+		{Cell c(5,2);b.push_back(c);}
+		{Cell c(5,3);b.push_back(c);}
+		{Cell c(5,4);b.push_back(c);}
+		std::sort(b.begin(),b.end(),Cell());
+			
+		Elements e;
+		{Cell c(4,3);e.push_back(c);}
+		{Cell c(5,3);e.push_back(c);}
+		{Cell c(6,3);e.push_back(c);}
+		
+		gol.init(e);
+		Elements c = gol.iterate();
+		std::sort(c.begin(),c.end(),Cell());
+		
+		EXPECT_TRUE(std::equal(c.begin(),c.end(),b.begin(),&Cell::CellCompare))
+			<< " Test of oscillator failed";
+		for(int i=0;i<1000;++i)
+		{
+			const Elements& e = gol.iterate();
+			EXPECT_EQ(e.size(),3);
+		}
+	}
+
+#if 1
+int main(int argc, char **argv)
+{
+	testing::InitGoogleTest(&argc, argv);
+	return RUN_ALL_TESTS();
 }
 
-template <typename A, typename B>
-class GameOfLife
+#else
+int main(int argc, char **argv)
 {
-public:
-	void init(const Element_set& s)
-	{
-		element_set = s;
-	}
+	Elements es;
 	
-	const Element_set& iterate()
-	{
-		Element_map tmp_map;
-		for(Element_set_ci i(element_set.begin()), e(element_set.end()); i!=e ; ++i)
-		{
-			tmp_map[*i].isCell = true;
-			processElement(*i, tmp_map);
-		}
-		
-		element_set.clear();
-		
-		for(Element_map_ci i(tmp_map.begin()), e(tmp_map.end()); i!=e ; ++i)
-		{
-			if(aliveStrategy(i->second) || birthStrategy(i->second))
-			{
-				element_set.insert(i->first);
-			}
-		}
-		
-		return element_set;
-	}
-private:
-	
-	Element_set 	element_set;
-	A 		aliveStrategy;
-	B 		birthStrategy;
-};
+	// endless life
+	{Cell c(2,2);es.push_back(c);}
+	{Cell c(4,3);es.push_back(c);}
+	{Cell c(4,2);es.push_back(c);}
+	{Cell c(6,4);es.push_back(c);}
+	{Cell c(6,5);es.push_back(c);}
+	{Cell c(6,6);es.push_back(c);}
+	{Cell c(8,5);es.push_back(c);}
+	{Cell c(8,6);es.push_back(c);}
+	{Cell c(8,7);es.push_back(c);}
+	{Cell c(9,6);es.push_back(c);}
 
-int main()
-{
-	Element_set es;
-	// Die hard pattern
-	{Cell c(2,3);es.insert(c);}
-	{Cell c(3,3);es.insert(c);}
-	{Cell c(3,2);es.insert(c);}
-	{Cell c(7,2);es.insert(c);}
-	{Cell c(8,2);es.insert(c);}
-	{Cell c(9,2);es.insert(c);}
-	{Cell c(8,4);es.insert(c);}
+	// Beacon
+	/*{Cell c(4,3);es.push_back(c);}
+	{Cell c(4,4);es.push_back(c);}
+	{Cell c(3,3);es.push_back(c);}
+	{Cell c(3,4);es.push_back(c);}
+	
+	{Cell c(1,1);es.push_back(c);}
+	{Cell c(2,1);es.push_back(c);}
+	{Cell c(1,2);es.push_back(c);}
+	{Cell c(2,2);es.push_back(c);}*/
 	
 	GameOfLife <AliveStrategy, BirthStrategy> gol;
 	gol.init(es);
 	
-	for(int i=0; i<130; ++i)
+	for(int i=0; ; ++i)
 	{ 
-		es = gol.iterate();
-		std::cout << "Size = " << es.size() << std::endl;
+		const Elements &es = gol.iterate();
+		std::cout << i << " Size = " << es.size() << std::endl;
 	}
 	return 0;
 }
+#endif
